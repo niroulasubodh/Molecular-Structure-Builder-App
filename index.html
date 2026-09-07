@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Molecular Structure Drawing Tool</title>
+<script src="https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.5.5/3Dmol-min.js"></script>
+<style>
+  :root{
+    --paper:#F5F3EE;
+    --panel:#FFFFFF;
+    --ink:#1C1E1A;
+    --muted:#6B6A61;
+    --line:#DAD5C8;
+    --accent:#2B4F49;
+    --accent-soft:#E4ECE9;
+    --amber:#C9862F;
+    --error:#A3392A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:760px;
+    margin:0 auto;
+    padding:56px 24px 80px;
+  }
+  header{margin-bottom:40px;}
+  .kicker{
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.02em;
+    margin:0 0 10px;
+  }
+  h1{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight:600;
+    font-size:38px;
+    line-height:1.15;
+    margin:0 0 14px;
+  }
+  .lede{
+    color:var(--muted);
+    font-size:16px;
+    max-width:56ch;
+    margin:0;
+  }
+  .ring{
+    position:absolute;
+    top:40px; right:24px;
+    opacity:0.55;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:24px;
+    margin-bottom:24px;
+  }
+  .tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .tab{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size:14px;
+    padding:8px 14px;
+    border-radius:7px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .tab.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .field{display:none;}
+  .field.active{display:block;}
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  input[type="text"], select{
+    width:100%;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size:15px;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  select{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;}
+  input[type="text"]:focus, select:focus{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  .row{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;}
+  .row > div{flex:1; min-width:220px;}
+  button.run{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight:500;
+    font-size:14px;
+    padding:11px 18px;
+    border-radius:7px;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    cursor:pointer;
+  }
+  button.run:hover{background:#234039;}
+  .msg{
+    font-size:13.5px;
+    margin-top:12px;
+    padding:10px 12px;
+    border-radius:7px;
+  }
+  .msg.error{ background:#FBEAE7; color:var(--error); }
+  .msg.note{ background:var(--accent-soft); color:var(--accent); }
+  h2{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size:20px;
+    font-weight:600;
+    margin:0 0 14px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  @media (max-width:640px){
+    .grid{grid-template-columns:1fr;}
+    h1{font-size:30px;}
+  }
+  .stage{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:8px;
+    min-height:280px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  #viewer3d{
+    width:100%;
+    height:280px;
+    position:relative;
+  }
+  .placeholder{
+    color:var(--muted);
+    font-size:13.5px;
+    text-align:center;
+    padding:24px;
+  }
+  footer{
+    margin-top:36px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  footer a{color:var(--accent);}
+  code{
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    background:var(--accent-soft);
+    padding:1px 5px;
+    border-radius:4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="kicker">SMILES → structure</p>
+    <h1>Molecular Structure Drawing Tool</h1>
+    <p class="lede">Turn a SMILES string into a 2D diagram and an interactive 3D model, right in the browser — no server required.</p>
+  </header>
+
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" data-mode="examples">Select from examples</button>
+      <button class="tab" data-mode="smiles">Draw using SMILES</button>
+    </div>
+
+    <div class="field active" id="field-examples">
+      <label for="example-select">Select a molecule</label>
+      <select id="example-select"></select>
+    </div>
+
+    <div class="field" id="field-smiles">
+      <label for="smiles-input">Enter SMILES notation</label>
+      <div class="row">
+        <div>
+          <input type="text" id="smiles-input" placeholder="e.g., CCO for ethanol" />
+        </div>
+        <button class="run" id="run-btn">Draw structure</button>
+      </div>
+    </div>
+
+    <div id="status"></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>2D structure</h2>
+      <div class="stage" id="stage2d"><p class="placeholder">A 2D diagram will appear here.</p></div>
+    </div>
+    <div class="panel">
+      <h2>3D structure</h2>
+      <div class="stage" id="stage3d"><p class="placeholder">An interactive 3D model will appear here.</p></div>
+    </div>
+  </div>
+
+  <footer>
+    Built by Subodh Niroula. 2D rendering runs on <a href="https://github.com/rdkit/rdkit-js" target="_blank" rel="noopener">RDKit.js</a>, 3D rendering on <a href="https://3dmol.org" target="_blank" rel="noopener">3Dmol.js</a> — both entirely client-side. 3D conformers are precomputed for the example molecules; for arbitrary SMILES this page tries a live lookup against PubChem and falls back to the 2D view if no conformer is found. For guaranteed 3D on any molecule, run the companion <code>app.py</code> Streamlit app locally.
+  </footer>
+
+</div>
+
+<script>
+// ---- Example molecules (2D SMILES) ----
+const exampleSmiles = {
+  "Aspirin": "CC(=O)OC1=CC=CC=C1C(=O)O",
+  "Caffeine": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+  "Paracetamol": "CC(=O)NC1=CC=C(O)C=C1",
+  "Water": "O",
+  "Ethanol": "CCO",
+  "Benzene": "c1ccccc1",
+  "Methane": "C",
+  "Glucose": "C([C@@H]1[C@H]([C@@H]([C@H](C(O1)O)O)O)O)O"
+};
+
+// ---- Precomputed 3D mol blocks for the example molecules ----
+// Generated offline with RDKit (Python): AllChem.EmbedMolecule + UFF optimization.
+const precomputed3D = {"Aspirin": {"smiles": "CC(=O)OC1=CC=CC=C1C(=O)O", "molblock": "\n     RDKit          3D\n\n 21 21  0  0  0  0  0  0  0  0999 V2000\n   -3.0081   -2.1789   -0.0706 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.1987   -0.9726    0.2641 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.6878   -0.0859    1.0153 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.8696   -0.8979   -0.1720 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.0682    0.2553   -0.1427 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.6358    1.5332   -0.3157 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.1658    2.6746   -0.2998 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.5425    2.5584   -0.1225 C   0  0  0  0  0  0  0  0  0  0  0  0\n    2.1251    1.2994    0.0308 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3352    0.1337    0.0175 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.9973   -1.1867    0.1829 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3249   -2.2525    0.2010 O   0  0  0  0  0  0  0  0  0  0  0  0\n    3.3813   -1.2609    0.3224 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.6538   -2.6180   -1.0266 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -4.0786   -1.9036   -0.1777 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.9016   -2.9315    0.7380 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.6962    1.6492   -0.4937 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.2809    3.6514   -0.4344 H   0  0  0  0  0  0  0  0  0  0  0  0\n    2.1623    3.4458   -0.1120 H   0  0  0  0  0  0  0  0  0  0  0  0\n    3.1986    1.2412    0.1594 H   0  0  0  0  0  0  0  0  0  0  0  0\n    3.8461   -2.1538    0.4363 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  2  0\n  2  4  1  0\n  4  5  1  0\n  5  6  2  0\n  6  7  1  0\n  7  8  2  0\n  8  9  1  0\n  9 10  2  0\n 10 11  1  0\n 11 12  2  0\n 11 13  1  0\n 10  5  1  0\n  1 14  1  0\n  1 15  1  0\n  1 16  1  0\n  6 17  1  0\n  7 18  1  0\n  8 19  1  0\n  9 20  1  0\n 13 21  1  0\nM  END\n"}, "Caffeine": {"smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", "molblock": "\n     RDKit          3D\n\n 24 25  0  0  0  0  0  0  0  0999 V2000\n    3.2631    0.6815   -0.1778 C   0  0  0  0  0  0  0  0  0  0  0  0\n    2.1331   -0.2415   -0.2051 N   0  0  0  0  0  0  0  0  0  0  0  0\n    2.1813   -1.5865   -0.3692 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.9556   -2.1722   -0.3445 N   0  0  0  0  0  0  0  0  0  0  0  0\n    0.1269   -1.1254   -0.1544 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.8245    0.0300   -0.0687 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.1673    1.2363    0.1345 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.8158    2.3170    0.1921 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.2025    1.2163    0.2700 N   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.8973    0.0227    0.1558 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -3.1571    0.0182    0.2556 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.2305   -1.1633   -0.0670 N   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.9559   -2.4385   -0.1431 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.9386    2.4765    0.4668 C   0  0  0  0  0  0  0  0  0  0  0  0\n    4.2175    0.1311   -0.3194 H   0  0  0  0  0  0  0  0  0  0  0  0\n    3.1579    1.4266   -0.9940 H   0  0  0  0  0  0  0  0  0  0  0  0\n    3.2958    1.2047    0.8009 H   0  0  0  0  0  0  0  0  0  0  0  0\n    3.0999   -2.1424   -0.5065 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.3574   -3.2166   -0.6631 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.1941   -2.7923    0.8820 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.8994   -2.3168   -0.7169 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.8385    2.3192    1.0990 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.2508    2.8824   -0.5184 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.3167    3.2329    0.9912 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  1  0\n  3  4  2  0\n  4  5  1  0\n  5  6  2  0\n  6  7  1  0\n  7  8  2  0\n  7  9  1  0\n  9 10  1  0\n 10 11  2  0\n 10 12  1  0\n 12 13  1  0\n  9 14  1  0\n  6  2  1  0\n 12  5  1  0\n  1 15  1  0\n  1 16  1  0\n  1 17  1  0\n  3 18  1  0\n 13 19  1  0\n 13 20  1  0\n 13 21  1  0\n 14 22  1  0\n 14 23  1  0\n 14 24  1  0\nM  END\n"}, "Paracetamol": {"smiles": "CC(=O)NC1=CC=C(O)C=C1", "molblock": "\n     RDKit          3D\n\n 20 20  0  0  0  0  0  0  0  0999 V2000\n    3.7647    0.5032   -0.0355 C   0  0  0  0  0  0  0  0  0  0  0  0\n    2.3447    0.3173   -0.4609 C   0  0  0  0  0  0  0  0  0  0  0  0\n    2.0457    0.4305   -1.6803 O   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3567   -0.0798    0.5025 N   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.0577   -0.1090    0.2436 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.8560   -1.0640    0.8921 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.2366   -1.0997    0.6744 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.8378   -0.1691   -0.1830 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -4.2122   -0.1947   -0.4084 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.0519    0.7991   -0.8154 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.6706    0.8361   -0.6000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    3.8002    0.9912    0.9611 H   0  0  0  0  0  0  0  0  0  0  0  0\n    4.3057    1.1435   -0.7642 H   0  0  0  0  0  0  0  0  0  0  0  0\n    4.2652   -0.4855    0.0234 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.6958   -0.4474    1.4205 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.4049   -1.7878    1.5593 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.8377   -1.8488    1.1739 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -4.8089   -0.8826    0.0362 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.5135    1.5297   -1.4676 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.0906    1.6178   -1.0717 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  2  0\n  2  4  1  0\n  4  5  1  0\n  5  6  1  0\n  6  7  2  0\n  7  8  1  0\n  8  9  1  0\n  8 10  2  0\n 10 11  1  0\n 11  5  2  0\n  1 12  1  0\n  1 13  1  0\n  1 14  1  0\n  4 15  1  0\n  6 16  1  0\n  7 17  1  0\n  9 18  1  0\n 10 19  1  0\n 11 20  1  0\nM  END\n"}, "Water": {"smiles": "O", "molblock": "\n     RDKit          3D\n\n  3  2  0  0  0  0  0  0  0  0999 V2000\n    0.0089    0.4040    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.7873   -0.1847    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.7784   -0.2193    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  1  3  1  0\nM  END\n"}, "Ethanol": {"smiles": "CCO", "molblock": "\n     RDKit          3D\n\n  9  8  0  0  0  0  0  0  0  0999 V2000\n   -0.9254    0.0742    0.0328 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.5123   -0.4192   -0.0743 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3778    0.4494    0.6044 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.0225    1.0731   -0.4429 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.6044   -0.6368   -0.4832 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.2236    0.1472    1.1002 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.8058   -0.5060   -1.1451 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.5852   -1.4274    0.3853 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.4948    1.2455    0.0227 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  1  0\n  1  4  1  0\n  1  5  1  0\n  1  6  1  0\n  2  7  1  0\n  2  8  1  0\n  3  9  1  0\nM  END\n"}, "Benzene": {"smiles": "c1ccccc1", "molblock": "\n     RDKit          3D\n\n 12 12  0  0  0  0  0  0  0  0999 V2000\n    0.8056   -1.1438   -0.0083 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3931    0.1257   -0.0282 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.5875    1.2695   -0.0199 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.8056    1.1438    0.0083 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.3931   -0.1257    0.0282 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.5875   -1.2695    0.0199 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.4288   -2.0287   -0.0147 H   0  0  0  0  0  0  0  0  0  0  0  0\n    2.4708    0.2230   -0.0500 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.0420    2.2517   -0.0354 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.4288    2.0287    0.0147 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.4708   -0.2230    0.0500 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.0420   -2.2517    0.0354 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  2  0\n  3  4  1  0\n  4  5  2  0\n  5  6  1  0\n  6  1  2  0\n  1  7  1  0\n  2  8  1  0\n  3  9  1  0\n  4 10  1  0\n  5 11  1  0\n  6 12  1  0\nM  END\n"}, "Methane": {"smiles": "C", "molblock": "\n     RDKit          3D\n\n  5  4  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000   -0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.6784    0.8735   -0.0863 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.4096   -0.8460   -0.5893 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.0852   -0.2982    1.0652 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.0028    0.2707   -0.3896 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  1  3  1  0\n  1  4  1  0\n  1  5  1  0\nM  END\n"}, "Glucose": {"smiles": "C([C@@H]1[C@H]([C@@H]([C@H](C(O1)O)O)O)O)O", "molblock": "\n     RDKit          3D\n\n 24 24  0  0  0  0  0  0  0  0999 V2000\n   -2.5440    0.2524   -0.1328 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.0970   -0.1368    0.1917 C   0  0  2  0  0  0  0  0  0  0  0  0\n   -0.1872    1.1134    0.2503 C   0  0  2  0  0  0  0  0  0  0  0  0\n    1.2663    0.6772    0.5093 C   0  0  1  0  0  0  0  0  0  0  0  0\n    1.6891   -0.4271   -0.4802 C   0  0  2  0  0  0  0  0  0  0  0  0\n    0.6353   -1.5517   -0.4765 C   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.6379   -1.0290   -0.8116 O   0  0  0  0  0  0  0  0  0  0  0  0\n    0.9773   -2.5156   -1.4374 O   0  0  0  0  0  0  0  0  0  0  0  0\n    2.9365   -0.9525   -0.1057 O   0  0  0  0  0  0  0  0  0  0  0  0\n    2.1382    1.7785    0.4395 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.5964    1.9674    1.2895 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -3.3385   -0.8996   -0.1982 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.5787    0.7859   -1.1096 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -2.9415    0.9249    0.6597 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.1068   -0.6388    1.1885 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.2296    1.6398   -0.7345 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3281    0.2619    1.5406 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.7445   -0.0067   -1.5127 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.5975   -2.0396    0.5295 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.6786   -3.0924   -1.0356 H   0  0  0  0  0  0  0  0  0  0  0  0\n    3.6249   -0.3113   -0.4227 H   0  0  0  0  0  0  0  0  0  0  0  0\n    2.0937    2.1410   -0.4840 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.1974    2.6488    0.8896 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -4.2549   -0.5901   -0.4207 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  1  0\n  3  4  1  0\n  4  5  1  0\n  5  6  1  0\n  6  7  1  0\n  6  8  1  0\n  5  9  1  0\n  4 10  1  0\n  3 11  1  0\n  1 12  1  0\n  7  2  1  0\n  1 13  1  0\n  1 14  1  0\n  2 15  1  1\n  3 16  1  6\n  4 17  1  1\n  5 18  1  6\n  6 19  1  0\n  8 20  1  0\n  9 21  1  0\n 10 22  1  0\n 11 23  1  0\n 12 24  1  0\nM  END\n"}};
+
+let RDKitModule = null;
+let currentMode = "examples";
+let glviewer = null;
+
+function setStatus(text, kind){
+  const el = document.getElementById("status");
+  if(!text){ el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="msg ${kind}">${text}</div>`;
+}
+
+function clearStage(id, placeholderText){
+  const el = document.getElementById(id);
+  el.innerHTML = `<p class="placeholder">${placeholderText}</p>`;
+}
+
+// ---- Tabs ----
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentMode = tab.dataset.mode;
+    document.getElementById("field-examples").classList.toggle("active", currentMode === "examples");
+    document.getElementById("field-smiles").classList.toggle("active", currentMode === "smiles");
+    if(currentMode === "examples"){
+      drawFromSmiles(exampleSmiles[document.getElementById("example-select").value], document.getElementById("example-select").value);
+    }
+  });
+});
+
+// ---- Populate example dropdown ----
+const select = document.getElementById("example-select");
+Object.keys(exampleSmiles).forEach(name => {
+  const opt = document.createElement("option");
+  opt.value = name;
+  opt.textContent = name;
+  select.appendChild(opt);
+});
+select.addEventListener("change", () => {
+  drawFromSmiles(exampleSmiles[select.value], select.value);
+});
+
+document.getElementById("run-btn").addEventListener("click", () => {
+  const smiles = document.getElementById("smiles-input").value.trim();
+  if(!smiles){ setStatus("Enter a SMILES string first.", "error"); return; }
+  drawFromSmiles(smiles, null);
+});
+document.getElementById("smiles-input").addEventListener("keydown", (e) => {
+  if(e.key === "Enter"){ document.getElementById("run-btn").click(); }
+});
+
+// ---- RDKit init ----
+window.initRDKitModule().then(mod => {
+  RDKitModule = mod;
+  // Draw the first example once RDKit is ready
+  drawFromSmiles(exampleSmiles[select.value], select.value);
+}).catch(() => {
+  setStatus("Could not load the RDKit engine. Check your connection and reload the page.", "error");
+});
+
+function draw2D(smiles){
+  const stage = document.getElementById("stage2d");
+  if(!RDKitModule){
+    stage.innerHTML = `<p class="placeholder">Loading chemistry engine…</p>`;
+    return false;
+  }
+  let mol;
+  try{
+    mol = RDKitModule.get_mol(smiles);
+  }catch(e){
+    mol = null;
+  }
+  if(!mol || !mol.is_valid()){
+    stage.innerHTML = `<p class="placeholder">Invalid SMILES — no structure to draw.</p>`;
+    if(mol) mol.delete();
+    return false;
+  }
+  const svg = mol.get_svg(320, 260);
+  stage.innerHTML = svg;
+  mol.delete();
+  return true;
+}
+
+function render3DFromMolBlock(molblock){
+  const stage = document.getElementById("stage3d");
+  stage.innerHTML = `<div id="viewer3d"></div>`;
+  glviewer = $3Dmol.createViewer(document.getElementById("viewer3d"), { backgroundColor: "0xF5F3EE" });
+  glviewer.addModel(molblock, "mol");
+  glviewer.setStyle({}, { stick: { radius: 0.15 }, sphere: { scale: 0.25 } });
+  glviewer.zoomTo();
+  glviewer.spin(true);
+  glviewer.render();
+}
+
+async function tryPubChem3D(smiles){
+  try{
+    const cidRes = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/${encodeURIComponent(smiles)}/cids/JSON`);
+    if(!cidRes.ok) return null;
+    const cidData = await cidRes.json();
+    const cid = cidData?.IdentifierList?.CID?.[0];
+    if(!cid) return null;
+    const sdfRes = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/SDF?record_type=3d`);
+    if(!sdfRes.ok) return null;
+    const sdf = await sdfRes.text();
+    if(!sdf || sdf.trim().length === 0) return null;
+    return sdf;
+  }catch(e){
+    return null;
+  }
+}
+
+async function drawFromSmiles(smiles, exampleName){
+  setStatus(null);
+  if(!smiles) return;
+
+  const ok2d = draw2D(smiles);
+  if(!ok2d){
+    setStatus("That SMILES string couldn't be parsed. Double-check the notation and try again.", "error");
+    clearStage("stage3d", "No valid structure to render in 3D.");
+    return;
+  }
+
+  // 3D: use precomputed block for known examples, otherwise try a live PubChem lookup.
+  if(exampleName && precomputed3D[exampleName]){
+    render3DFromMolBlock(precomputed3D[exampleName].molblock);
+    return;
+  }
+
+  const stage3d = document.getElementById("stage3d");
+  stage3d.innerHTML = `<p class="placeholder">Looking up a 3D conformer…</p>`;
+  const sdf = await tryPubChem3D(smiles);
+  if(sdf){
+    render3DFromMolBlock(sdf);
+  }else{
+    stage3d.innerHTML = `<p class="placeholder">No 3D conformer found for this molecule online. Run the companion Python app locally to generate one for any SMILES.</p>`;
+    setStatus("2D structure drawn. 3D preview unavailable for this exact molecule — see the note below the cards.", "note");
+  }
+}
+</script>
+</body>
+</html>
