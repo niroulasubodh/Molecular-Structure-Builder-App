@@ -64,6 +64,3 @@ Because it's just static files, GitHub Pages can host it directly, and it will a
 
 Aspirin, caffeine, paracetamol, water, ethanol, benzene, methane, and glucose.
 
-## License
-
-Add a license of your choice here (e.g., MIT) if you plan to let others reuse this code.
