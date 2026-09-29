@@ -37,7 +37,7 @@ This is a self-contained HTML page with no server and no Python required. It run
 
 **View it locally:** just open `index.html` in a browser.
 
-**Limitations:** The browser-only version has full, reliable 3D generation for the built-in example molecules (their 3D coordinates are precomputed with RDKit ahead of time and bundled into the page). For a custom SMILES string you type in, it tries a live lookup against PubChem's database for a matching 3D structure, and falls back to showing just the 2D diagram if no match is found. The Python app (`app.py`) doesn't have this limitation — it generates 3D coordinates for any valid molecule, since it runs RDKit's real conformer-generation algorithm rather than looking one up.
+**Limitations:** The browser-only version has full, reliable 3D generation for the built-in example molecules (their 3D coordinates are precomputed with RDKit ahead of time and bundled into the page). For a custom SMILES string you type in, it tries a live lookup against PubChem's database for a matching 3D structure, and falls back to showing just the 2D diagram if no match is found. The Python app (`app.py`) doesn't have this limitation, and it generates 3D coordinates for any valid molecule, since it runs RDKit's real conformer-generation algorithm rather than looking one up.
 
 ## Tech stack
 
