@@ -1,4 +1,4 @@
-# (Molecular Structure Drawing Tool)[https://subodhniroula.com.np/Molecular-Structure-Builder-App/]
+# [Molecular Structure Drawing Tool](https://subodhniroula.com.np/Molecular-Structure-Builder-App/)
 
 A small web app that turns a SMILES string into a 2D diagram and an interactive, rotatable 3D molecular model. Type or select a molecule and see both representations side by side.
 
