@@ -28,8 +28,6 @@ streamlit run app.py
 
 Then open the local URL Streamlit prints in your terminal (usually `http://localhost:8501`).
 
-**Deploy it so others can use it from a link:** Streamlit apps need a running server, so GitHub alone can't host it — push this repo to [Streamlit Community Cloud](https://share.streamlit.io) (free) or [Hugging Face Spaces](https://huggingface.co/spaces), then link the live URL from this README.
-
 ### 2. `index.html` — a static, browser-only version
 
 This is a self-contained HTML page with no server and no Python required. It runs entirely in the browser using two WebAssembly/JS libraries:
@@ -37,19 +35,9 @@ This is a self-contained HTML page with no server and no Python required. It run
 - [RDKit.js](https://github.com/rdkit/rdkit-js) for parsing SMILES and drawing the 2D structure
 - [3Dmol.js](https://3dmol.org/) for the interactive 3D viewer
 
-Because it's just static files, GitHub Pages can host it directly, and it will actually run and respond to input for anyone who opens the link — unlike a plain code preview.
-
 **View it locally:** just open `index.html` in a browser.
 
-**Publish it via GitHub Pages:**
-
-1. Push `index.html` to this repository (repo root, or a `/docs` folder).
-2. In the repo, go to **Settings → Pages**.
-3. Under "Build and deployment," set **Source** to "Deploy from a branch," pick your branch, and the root (or `/docs`) folder.
-4. Save. GitHub will publish it at `https://<your-username>.github.io/<repo-name>/`.
-5. Add that link to the top of this README so visitors can try it straight from GitHub.
-
-**One limitation to know about:** the browser-only version has full, reliable 3D generation for the built-in example molecules (their 3D coordinates are precomputed with RDKit ahead of time and bundled into the page). For a custom SMILES string you type in, it tries a live lookup against PubChem's database for a matching 3D structure, and falls back to showing just the 2D diagram if no match is found. The Python app (`app.py`) doesn't have this limitation — it generates 3D coordinates for any valid molecule, since it runs RDKit's real conformer-generation algorithm rather than looking one up.
+**Limitations:** The browser-only version has full, reliable 3D generation for the built-in example molecules (their 3D coordinates are precomputed with RDKit ahead of time and bundled into the page). For a custom SMILES string you type in, it tries a live lookup against PubChem's database for a matching 3D structure, and falls back to showing just the 2D diagram if no match is found. The Python app (`app.py`) doesn't have this limitation — it generates 3D coordinates for any valid molecule, since it runs RDKit's real conformer-generation algorithm rather than looking one up.
 
 ## Tech stack
 
