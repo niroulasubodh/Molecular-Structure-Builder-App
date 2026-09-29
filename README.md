@@ -1,12 +1,12 @@
 # [Molecular Structure Drawing Tool](https://subodhniroula.com.np/Molecular-Structure-Builder-App/)
 
-A small web app that turns a SMILES string into a 2D diagram and an interactive, rotatable 3D molecular model. Type or select a molecule and see both representations side by side.
+A small web app that turns a SMILES string and chemical names into a 2D diagram and an interactive, rotatable 3D molecular model. Type or select a molecule and see both representations side by side.
 
 Built by **Subodh Niroula**.
 
 ## What it does
 
-- Accepts a [SMILES](https://en.wikipedia.org/wiki/Simplified_Molecular_Input_Line_Entry_System) string, either typed in directly or picked from a built-in list of example molecules (aspirin, caffeine, paracetamol, glucose, and more).
+- Accepts a [SMILES](https://en.wikipedia.org/wiki/Simplified_Molecular_Input_Line_Entry_System) string and chemical names, either typed in directly or picked from a built-in list of example molecules (aspirin, caffeine, paracetamol, glucose, and more).
 - Renders a static 2D structural diagram of the molecule.
 - Generates a 3D conformer and displays it as an interactive model you can rotate and zoom.
 - Lets you download the generated 3D structure as a `.pdb` file.
