@@ -11,8 +11,7 @@ from stmol import showmol
 
 st.set_page_config(page_title="Molecular Structure Drawing Tool", layout="centered")
 
-# ---------------------------------------------------------------- styling ---
-# Same palette and type as index.html
+# --------------------------------------- styling --------------------------------------- 
 st.markdown(
     """
     <style>
@@ -80,7 +79,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --------------------------------------------------------------- examples ---
+# --------------------------------------- example molecules ---------------------------------------
 example_molecules = {
     "Aspirin": "CC(=O)OC1=CC=CC=C1C(=O)O",
     "Caffeine": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
@@ -93,7 +92,7 @@ example_molecules = {
 }
 
 
-# ---------------------------------------------------------------- helpers ---
+# --------------------------------------- helpers ---------------------------------------
 @st.cache_data(show_spinner=False)
 def smiles_from_name(name):
     """Look up a molecule name on PubChem. Returns (smiles, cid) or (None, None)."""
@@ -145,7 +144,7 @@ def file_base(label):
     return keep or "molecule"
 
 
-# ------------------------------------------------------------------ input ---
+# --------------------------------------- input ---------------------------------------
 with st.container(border=True):
     mode = st.radio(
         "Input method",
